@@ -129,6 +129,7 @@ public class FurnitureTable extends JTable implements View, Printable {
   private ListSelectionListener  tableSelectionListener;
   private boolean                selectionByUser;
   private int                    furnitureInformationRow;
+  private boolean                levelColumnPrinted;
   private Popup                  furnitureInformationPopup;
   private AWTEventListener       informationPopupRemovalListener;
 
@@ -724,6 +725,21 @@ public class FurnitureTable extends JTable implements View, Printable {
   }
 
   /**
+   * Sets whether a Level column should be added to printed pages when it isn't
+   * already displayed. This doesn't change the columns displayed on screen.
+   */
+  public void setLevelColumnPrinted(boolean levelColumnPrinted) {
+    this.levelColumnPrinted = levelColumnPrinted;
+  }
+
+  /**
+   * Returns <code>true</code> if a Level column is added to printed pages.
+   */
+  public boolean isLevelColumnPrinted() {
+    return this.levelColumnPrinted;
+  }
+
+  /**
    * Prints this component to make it fill <code>pageFormat</code> imageable size.
    */
   public int print(Graphics g, PageFormat pageFormat, int pageIndex) throws PrinterException {
@@ -750,8 +766,21 @@ public class FurnitureTable extends JTable implements View, Printable {
           return headerRendererLabel;
         }
       };
+    List<TableColumn> printedColumns = new ArrayList<TableColumn>();
+    boolean levelColumnDisplayed = false;
     for (int columnIndex = 0, n = columnModel.getColumnCount(); columnIndex < n; columnIndex++) {
-      final TableColumn tableColumn = columnModel.getColumn(columnIndex);
+      TableColumn tableColumn = columnModel.getColumn(columnIndex);
+      printedColumns.add(tableColumn);
+      levelColumnDisplayed |= tableColumn.getIdentifier() == HomePieceOfFurniture.SortableProperty.LEVEL;
+    }
+    if (this.levelColumnPrinted
+        && !levelColumnDisplayed
+        && columnModel instanceof FurnitureTableColumnModel) {
+      // Add the Level column to printed pages only, so rows of different levels are distinguishable
+      printedColumns.add(((FurnitureTableColumnModel)columnModel).availableColumns.get(
+          HomePieceOfFurniture.SortableProperty.LEVEL));
+    }
+    for (final TableColumn tableColumn : printedColumns) {
       // Create a printable column from existing table column
       TableColumn printableColumn = new TableColumn();
       printableColumn.setIdentifier(tableColumn.getIdentifier());
